@@ -210,6 +210,7 @@ Register a subscriber by POSTing on `/subscribers` with some subscriber informat
 ##### Allowed parameters:
 
 - `lang`: The language code for the of the subscriber. This parameter is used to determine which message translation to use when pushing text notifications. You may use the 2 chars ISO code or a complete locale code (i.e.: en_CA) or any value you want as long as you provide the same values in your events. See below for info about events formatting.
+- `timezone`: time zone. Testing.
 - `badge`: The current app badge value. This parameter is only applicable to iOS for which badge counters must be maintained server side. On iOS, when a user read or loads more unread items, you must inform the server of the badge's new value. This badge value will be incremented automatically by pushd each time a new notification is sent to the subscriber.
 - `category`: The category for the push notification action. This parameter is only applicable to iOS8. 
 - `contentAvailable`: The 'content-available' flag value. This parameter is only applicable to iOS7 and applications which support Silent Remote Notifications or Newsstand capability. With iOS7 it is possible to have the application wake up before the user opens the app.
