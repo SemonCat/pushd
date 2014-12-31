@@ -1,3 +1,5 @@
+CronJob = require('cron').CronJob
+
 class PushServices
     services: {}
 
@@ -8,6 +10,7 @@ class PushServices
         return @services[protocol]
 
     push: (subscriber, subOptions, payload, cb) ->
+	console.log(subscriber)
         subscriber.get (info) =>
             if info then @services[info.proto]?.push(subscriber, subOptions, payload)
             cb() if cb
