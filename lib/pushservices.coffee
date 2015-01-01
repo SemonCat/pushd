@@ -1,4 +1,5 @@
-CronJob = require('cron').CronJob
+schedule = require('node-schedule')
+Time = require('time')(Date);
 
 class PushServices
     services: {}
@@ -10,9 +11,21 @@ class PushServices
         return @services[protocol]
 
     push: (subscriber, subOptions, payload, cb) ->
-	console.log(subscriber)
+        @schedulePush(subscriber, subOptions, payload, cb)
+
+    pushImmediately: (subscriber, subOptions, payload, cb) ->
         subscriber.get (info) =>
-            if info then @services[info.proto]?.push(subscriber, subOptions, payload)
+            if info then @services[info.proto]?.push(subscriber, subOptions, payload) 
             cb() if cb
+
+    schedulePush: (subscriber, subOptions, payload, cb) -> 
+        subscriber.get (info) =>
+            if info
+                time = new Date()
+                time.setTimezone(info.timezone,true)
+                console.log "execTime:"+time
+                schedule.scheduleJob(time,
+                    => @pushImmediately(subscriber, subOptions, payload, cb)
+                )
 
 exports.PushServices = PushServices

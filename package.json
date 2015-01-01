@@ -42,7 +42,8 @@
         "redis": "~0.12.1",
         "netmask": "~1.0.4",
         "winston": "~0.7.3",
-        "cron": "~1.0.4"
+     	"time": "~0.11.0",
+        "node-schedule": "~0.1.15"
     },
     "devDependencies":
     {
