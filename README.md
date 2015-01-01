@@ -398,6 +398,8 @@ An event message is a dictionary of optional key/values:
 - `data.<key>`: Key/values to be attached to the notification
 - `var.<key>`: Stores strings to be reused in `msg` and `<lang>.msg` contents
 - `sound`: The name of a sound file to be played. It must match a sound file name contained in you bundle app. (iOS only)
+- `pushDate`: Push Event execute time,for example:`2015/1/1 20:00:00`
+- `pushDateUseLocalTime`: `true` or `false`.
 
 #### Event Message Template
 
