@@ -21,8 +21,9 @@ class PushServices
     schedulePush: (subscriber, subOptions, payload, cb) -> 
         subscriber.get (info) =>
             if info
-                time = new Date()
-                time.setTimezone(info.timezone,true)
+                time = payload.pushDate
+                if payload.pushDateUseLocalTime is true
+                    time.setTimezone(info.timezone,true)
                 console.log "execTime:"+time
                 schedule.scheduleJob(time,
                     => @pushImmediately(subscriber, subOptions, payload, cb)

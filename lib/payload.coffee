@@ -15,6 +15,8 @@ class Payload
         @incrementBadge = yes
         @category = {}
         @contentAvailable = false
+        @pushDate = new Date()
+        @pushDateUseLocalTime = true
 
         # Read fields
         for own key, value of data
@@ -30,6 +32,8 @@ class Payload
                 when 'incrementBadge' then @incrementBadge = value != 'false'
                 when 'category' then @category = value
                 when 'contentAvailable' then @contentAvailable = value != 'false'
+                when 'pushDate' then @pushDate = new Date(value)
+                when 'pushDateUseLocalTime' then @pushDateUseLocalTime = value
                 else
                     if ([prefix, subkey] = key.split('.', 2)).length is 2
                         @[prefix][subkey] = value
