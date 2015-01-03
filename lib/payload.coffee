@@ -17,6 +17,7 @@ class Payload
         @contentAvailable = false
         @pushDate = new Date()
         @pushDateUseLocalTime = false
+        @srcData = data
 
         # Read fields
         for own key, value of data

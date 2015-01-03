@@ -40,7 +40,7 @@ tokenResolver = (proto, token, cb) ->
     Subscriber::getInstanceFromToken redis, proto, token, cb
 
 eventSourceEnabled = no
-pushServices = new PushServices()
+pushServices = new PushServices(redis)
 for name, conf of settings when conf.enabled
     logger.info "Registering push service: #{name}"
     if name is 'event-source'
