@@ -1,4 +1,5 @@
 express = require 'express'
+bodyParser = require 'body-parser'
 
 class TimeStatistics
     constructor: ->
@@ -20,7 +21,8 @@ class TimeStatistics
 timesPerEvent = {}
 
 app = express()
-app.use(express.bodyParser())
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json())
 
 app.post /^\/log\/(\w+)$/, (req, res) ->
     #console.log 'Received message'
@@ -30,12 +32,12 @@ app.post /^\/log\/(\w+)$/, (req, res) ->
 
     if not req.body.message?.default?
         console.log 'No default message!'
-        res.send 400
+        res.sendStatus 400
         
     body = JSON.parse req.body.message.default
     if not body?.timestamp?
         console.log 'No timestamp in the body!'
-        res.send 400
+        res.sendStatus 400
 
     event = req.body.event
 
@@ -47,7 +49,7 @@ app.post /^\/log\/(\w+)$/, (req, res) ->
 
     console.log "#{event} " + timesPerEvent[event].toString()
 
-    res.send 200
+    res.sendStatus 200
 
 port = 5001
 console.log "Listening on port #{port}"

@@ -8,8 +8,8 @@ import base64
 import random
 from multiprocessing import Process
 
-PUSHD_SERVER = 'http://admin:admin@localhost:5000'
-PUSHD_SERVER_WITHOUT_AUTH = 'http://localhost:5000'
+PUSHD_SERVER = 'http://vps.semoncat.com/push'
+PUSHD_SERVER_WITHOUT_AUTH = 'http://vps.semoncat.com/push'
 PUSHD_AUTHORIZATION = 'Basic %s' % base64.encodestring('admin:admin')
 TOKEN_HTTP = 'http://localhost:5001/log'
 
