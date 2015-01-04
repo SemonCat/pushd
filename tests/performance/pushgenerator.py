@@ -8,8 +8,8 @@ import base64
 import random
 from multiprocessing import Process
 
-PUSHD_SERVER = 'http://vps.semoncat.com/push'
-PUSHD_SERVER_WITHOUT_AUTH = 'http://vps.semoncat.com/push'
+PUSHD_SERVER = 'http://54.64.230.59:5566'
+PUSHD_SERVER_WITHOUT_AUTH = 'http://54.64.230.59:5566'
 PUSHD_AUTHORIZATION = 'Basic %s' % base64.encodestring('admin:admin')
 TOKEN_HTTP = 'http://localhost:5001/log'
 
@@ -107,10 +107,15 @@ def startPushProcesses(targets):
 
 def settings():
     # events and notification frequencies
-    push_targets = [RepeatingMessage('performancetest1', 2),
-                   RepeatingMessage('performancetest2', 10)]
-    subscribers = [generateRandomHTTPSubscribers(push_targets[0].event, 10),
-                  generateRandomHTTPSubscribers(push_targets[1].event, 5)]
+    
+    ##push_targets = [RepeatingMessage('performancetest1', 1),
+    ##               RepeatingMessage('performancetest2', 1)]
+    ##subscribers = [generateRandomHTTPSubscribers(push_targets[0].event, 10),
+    ##              generateRandomHTTPSubscribers(push_targets[1].event, 5)]
+   
+    push_targets = [RepeatingMessage('performancetest1', 2)]
+    subscribers = [generateRandomHTTPSubscribers('performancetest1', 1000),
+                   generateRandomHTTPSubscribers('performancetest1', 1000)]
     return push_targets, subscribers
 
 def main():
