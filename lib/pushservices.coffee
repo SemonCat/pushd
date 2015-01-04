@@ -9,9 +9,17 @@ class PushServices
     services: {}
 
     constructor: (@redis) ->
-        kue.app.listen(3000);
-        @jobs = kue.createQueue()
-        @jobs.process 'push',(job, done) =>
+        option = {
+            prefix: 'q',
+            redis: {
+                port: 6379,
+                host: '127.0.0.1',
+                db: 3
+            }
+        }
+        @jobs = kue.createQueue option
+        kue.app.listen 3000
+        @jobs.process 'push', 5000 ,(job, done) =>
             jobData = job.data
             subscriber = new Subscriber(redis, jobData.subscriberId)
             subOptions = jobData.subOptions
@@ -21,6 +29,9 @@ class PushServices
             @pushImmediately(subscriber,subOptions,payload)
             done()
 
+        @jobs.on 'job complete' ,(id,result) ->
+            kue.Job.get id , (err,job) ->
+                job.remove()
 
     addService: (protocol, service) ->
         @services[protocol] = service
@@ -68,7 +79,6 @@ class PushServices
                     .delay delayTime
                     .save()
 
-                @jobs.promote();
                 cb() if cb
 
 exports.PushServices = PushServices

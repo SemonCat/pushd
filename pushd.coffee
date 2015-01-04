@@ -12,6 +12,7 @@ PushServices = require('./lib/pushservices').PushServices
 Payload = require('./lib/payload').Payload
 logger = require 'winston'
 morgan = require 'morgan'
+kue = require 'kue'
 
 if settings.server.redis_socket?
     redis = require('redis').createClient(settings.server.redis_socket)
@@ -169,3 +170,6 @@ port = settings?.server?.udp_port
 if port?
     udpApi.bind port
     logger.info "Listening on udp port #{port}"
+
+jobs = kue.createQueue()
+jobs.promote(1000,5000)
