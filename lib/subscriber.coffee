@@ -63,6 +63,8 @@ class Subscriber
                                     .zadd("subscribers", 0, id)
                                     # save fields
                                     .hmset("subscriber:#{id}", fields)
+                                    # register timezone to global list
+                                    .sadd("timezones",fields.timezone)
                                     .exec (err, results) =>
                                         if results is null
                                             # Transction discarded due to a parallel creation of the watched subscriber key
@@ -142,6 +144,8 @@ class Subscriber
             .zscore("subscribers", @id)
             # edit fields
             .hmset(@key, fieldsAndValues)
+            # register timezone to global list
+            .sadd("timezones",fieldsAndValues.timezone)
             .exec (err, results) =>
                 @info = null # flush cache
                 if results && results[0]? # subscriber exists?
