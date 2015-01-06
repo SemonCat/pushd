@@ -38,8 +38,8 @@ class PushServices
         return @services[protocol]
 
     push: (subscriber, subOptions, payload, cb) ->
-        @kuePush(subscriber, subOptions, payload, cb)
-        ##@pushImmediately(subscriber, subOptions, payload, cb)        
+        ##@kuePush(subscriber, subOptions, payload, cb)
+        @pushImmediately(subscriber, subOptions, payload, cb)        
 
     pushImmediately: (subscriber, subOptions, payload, cb) ->
         subscriber.get (info) =>
