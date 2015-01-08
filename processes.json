@@ -1,0 +1,8 @@
+{
+  "apps" : [{
+    "name"        : "pushd",
+    "script"      : "pushd.coffee",
+    "watch"       : true,
+   "exec_interpreter" : "coffee" 
+  }]
+}
