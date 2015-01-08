@@ -122,7 +122,7 @@ def main():
     push_targets, subscribers = settings()
     
     ##processes = startPushProcesses(push_targets)
-    generateRandomHTTPSubscribers('performancetest1', 1000)
+    generateRandomHTTPSubscribers('performancetest1', 100*10000)
 
 
 if __name__ == '__main__':
