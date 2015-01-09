@@ -69,7 +69,7 @@ class Event
                 cb() if cb
 
     # Performs an action on each subscriber subsribed to this event
-    forEachSubscribers: (action, finished) ->
+    forEachSubscribers: (action, finished, timezone) ->
         Subscriber = require('./subscriber').Subscriber
         if @name is 'broadcast'
             # if event is broadcast, do not treat score as subscription option, ignore it
@@ -82,7 +82,12 @@ class Event
                 return (done) =>
                     action(new Subscriber(@redis, subscriberId), options, done)
 
-        subscribersKey = if @name is 'broadcast' then 'subscribers' else "#{@key}:subs"
+        subscribersKey = 
+            if @name is 'broadcast'
+                'broadcast'
+            else 
+                if timezone? then "#{@key}:#{timezone}:subs" else "#{@key}:subs"
+
         page = 0
         perPage = 100
         total = 0
@@ -103,6 +108,6 @@ class Event
             page++
         , =>
             # all done
-            finished(total) if finished
+            finished(total,timezone) if finished
 
 exports.Event = Event

@@ -41,7 +41,7 @@ tokenResolver = (proto, token, cb) ->
     Subscriber::getInstanceFromToken redis, proto, token, cb
 
 eventSourceEnabled = no
-pushServices = new PushServices(redis)
+pushServices = new PushServices()
 for name, conf of settings when conf.enabled
     logger.info "Registering push service: #{name}"
     if name is 'event-source'
@@ -49,7 +49,7 @@ for name, conf of settings when conf.enabled
         eventSourceEnabled = yes
     else
         pushServices.addService(name, new conf.class(conf, logger, tokenResolver))
-eventPublisher = new EventPublisher(pushServices)
+eventPublisher = new EventPublisher(redis,pushServices)
 
 checkUserAndPassword = (username, password) =>
     if settings.server?.auth?

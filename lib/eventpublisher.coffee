@@ -1,11 +1,63 @@
 events = require 'events'
+Event = require('./event').Event
 Payload = require('./payload').Payload
 logger = require 'winston'
+kue = require 'kue'
+Time = require('time')(Date);
 
 class EventPublisher extends events.EventEmitter
-    constructor: (@pushServices) ->
+    constructor: (@redis,@pushServices) ->
+        option = {
+            prefix: 'q',
+            disableSearch: true,
+            redis: {
+                port: 6379,
+                host: '127.0.0.1',
+                db: 3
+            }
+        }
+        @jobs = kue.createQueue option
+        kue.app.listen 3000
+        @jobs.process 'publish',(job, done) =>
+            jobData = job.data
+            event = new Event(redis,jobData.eventId)
+            @publishImmediately(event,jobData.payload,null,jobData.timezone)
+            done()
+
 
     publish: (event, data, cb) ->
+        @publishByTimezone(event,data,cb)
+
+    publishByTimezone: (event, data, cb) ->
+        @redis.smembers "timezones", (err, exists) =>
+            if exists?
+                for timezone in exists
+                    @kuePublish event, data, timezone
+            else
+                @publishImmediately(event,data,cb)
+
+    kuePublish:(event, data, timezone) ->
+        pushDate = if data.pushDate? then new Date(data.pushDate) else Date.now()
+
+        if data.pushDateUseLocalTime is true
+            pushDate.setTimezone(timezone,true)
+        delayTime = pushDate - Date.now()
+        eventId = event.name
+        jobData = {
+                    title:"PushEvent:"+event.key 
+                    eventId:eventId,
+                    timezone:timezone,
+                    payload:data
+                }
+
+        @jobs.create 'publish',jobData
+            .removeOnComplete true
+            .delay delayTime
+            .save()
+
+
+
+    publishImmediately: (event, data, cb, timezone) ->
         try
             payload = new Payload(data)
             payload.event = event
@@ -38,7 +90,8 @@ class EventPublisher extends events.EventEmitter
             logger.silly payload.localizedMessage('en')
 
             protoCounts = {}
-            event.forEachSubscribers (subscriber, subOptions, done) =>
+
+            action = (subscriber, subOptions, done) =>
                 # action
                 subscriber.get (info) =>
                     if info?.proto?
@@ -46,9 +99,9 @@ class EventPublisher extends events.EventEmitter
                             protoCounts[info.proto] += 1
                         else
                             protoCounts[info.proto] = 1
-
                 @pushServices.push(subscriber, subOptions, payload, done)
-            , (totalSubscribers) =>
+            
+            finish = (totalSubscribers,timezone) =>
                 # finished
                 logger.verbose "Pushed to #{totalSubscribers} subscribers"
                 for proto, count of protoCounts
@@ -60,7 +113,11 @@ class EventPublisher extends events.EventEmitter
                         cb(totalSubscribers) if cb
                 else
                     # if there is no subscriber, cleanup the event
-                    event.delete =>
-                        cb(0) if cb
+                    if timezone is null
+                        event.delete =>
+                            cb(0) if cb
+                    
+
+            event.forEachSubscribers action, finish, timezone
 
 exports.EventPublisher = EventPublisher
