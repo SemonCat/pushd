@@ -49,6 +49,7 @@ class EventPublisher extends events.EventEmitter
             try
                 pushDate.setTimezone(timezone,true)
             catch e
+                return
         delayTime = pushDate - Date.now()
         eventId = event.name
         jobData = {
