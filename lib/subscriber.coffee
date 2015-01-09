@@ -119,7 +119,6 @@ class Subscriber
                         cb(results[1] is 1) if cb # true if deleted, false if did exist
 
     get: (cb) ->
-        return until cb
         # returned cached value or perform query
         if @info?
             cb(@info)
@@ -135,25 +134,45 @@ class Subscriber
                     cb(@info = null) # null if subscriber doesn't exist + flush cache
 
     set: (fieldsAndValues, cb) ->
-        # TODO handle token update needed for Android
-        throw new Error("Can't modify `token` field") if fieldsAndValues.token?
-        throw new Error("Can't modify `proto` field") if fieldsAndValues.proto?
-        fieldsAndValues.updated = Math.round(new Date().getTime() / 1000)
-        @redis.multi()
-            # check subscriber existance
-            .zscore("subscribers", @id)
-            # edit fields
-            .hmset(@key, fieldsAndValues)
-            # register timezone to global list
-            .sadd("timezones",fieldsAndValues.timezone)
-            .exec (err, results) =>
-                @info = null # flush cache
-                if results && results[0]? # subscriber exists?
-                    cb(true) if cb
-                else
-                    # remove edited fields
-                    @redis.del @key, =>
-                        cb(null) if cb # null if subscriber doesn't exist
+        @get (info) =>
+            multi = @redis.multi()
+            # TODO handle token update needed for Android
+            throw new Error("Can't modify `token` field") if fieldsAndValues.token?
+            throw new Error("Can't modify `proto` field") if fieldsAndValues.proto?
+            fieldsAndValues.updated = Math.round(new Date().getTime() / 1000)
+
+            if info.timezone isnt fieldsAndValues.timezone
+                @timezoneChange info,fieldsAndValues
+
+            multi
+                # check subscriber existance
+                .zscore("subscribers", @id)
+                # edit fields
+                .hmset(@key, fieldsAndValues)
+                # register timezone to global list
+                .sadd("timezones",fieldsAndValues.timezone)
+                .exec (err, results) =>
+                    @info = null # flush cache
+                    if results && results[0]? # subscriber exists?
+                        cb(true) if cb
+                    else
+                        # remove edited fields
+                        @redis.del @key, =>
+                            cb(null) if cb # null if subscriber doesn't exist
+
+    timezoneChange: (srcInfo,newInfo) ->
+        @getSubscriptions (subs) =>
+            if subs?
+                multi = @redis.multi()
+                for sub in subs
+                    eventName = sub.event.key
+                    multi
+                        .zrem("#{eventName}:#{srcInfo.timezone}:subs", @id)
+
+                    if sub.event.options?
+                        multi
+                            .zadd("#{eventName}:#{newInfo.timezone}:subs", sub.event.options, @id)
+                    multi.exec()
 
     incr: (field, cb) ->
         @redis.multi()
@@ -207,18 +226,23 @@ class Subscriber
                     cb(null) # null if subscriber doesn't exist
 
     addSubscription: (event, options, cb) ->
-        @redis.multi()
-            # check subscriber existance
-            .zscore("subscribers", @id)
-            # add event to subscriber's subscriptions list
-            .zadd("#{@key}:evts", options, event.name)
-            # add subscriber to event's subscribers list
-            .zadd("#{event.key}:subs", options, @id)
-            # set the event created field if not already there (event is lazily created on first subscription)
-            .hsetnx(event.key, "created", Math.round(new Date().getTime() / 1000))
-            # lazily add event to the global event list
-            .sadd("events", event.name)
-            .exec (err, results) =>
+        @get (info) =>
+            multi = @redis.multi()
+                # check subscriber existance
+                .zscore("subscribers", @id)
+                # add event to subscriber's subscriptions list
+                .zadd("#{@key}:evts", options, event.name)
+                # add subscriber to event's subscribers list
+                .zadd("#{event.key}:subs", options, @id)
+                # set the event created field if not already there (event is lazily created on first subscription)
+                .hsetnx(event.key, "created", Math.round(new Date().getTime() / 1000))
+                # lazily add event to the global event list
+                .sadd("events", event.name)
+
+            if info.timezone?
+                multi.zadd("#{event.key}:#{info.timezone}:subs", options, @id)
+
+            multi.exec (err, results) =>
                 if results[0]? # subscriber exists?
                     logger.verbose "Registered subscriber #{@id} to event #{event.name}"
                     cb(results[1] is 1) if cb
@@ -231,10 +255,11 @@ class Subscriber
                         .del("#{@key}:evts", event.name)
                         # remove the subscriber from the event's subscribers list
                         .zrem("#{event.key}:subs", @id)
+                        .zrem("#{event.key}:#{info.timezone}:subs", @id)
                         # check if the subscriber list still exist after previous zrem
                         .zcard("#{event.key}:subs")
                         .exec (err, results) =>
-                            if results[2] is 0
+                            if results[3] is 0
                                 # The event subscriber list is now empty, clean it
                                 event.delete() # TOFIX possible race condition
                     cb(null) if cb # null if subscriber doesn't exist
@@ -247,10 +272,11 @@ class Subscriber
             .zrem("#{@key}:evts", event.name)
             # remove the subscriber from the event's subscribers list
             .zrem("#{event.key}:subs", @id)
+            .zrem("#{event.key}:#{info.timezone}:subs", @id)
             # check if the subscriber list still exist after previous zrem
             .zcard("#{event.key}:subs")
             .exec (err, results) =>
-                if results[3] is 0
+                if results[4] is 0
                     # The event subscriber list is now empty, clean it
                     event.delete() # TOFIX possible race condition
 
