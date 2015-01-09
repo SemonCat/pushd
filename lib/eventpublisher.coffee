@@ -37,10 +37,18 @@ class EventPublisher extends events.EventEmitter
                 @publishImmediately(event,data,cb)
 
     kuePublish:(event, data, timezone) ->
-        pushDate = if data.pushDate? then new Date(data.pushDate) else Date.now()
+        pushDateUseLocalTime = false
+        pushDate = 
+            if data.pushDate? 
+                pushDateUseLocalTime = true
+                new Date(data.pushDate) 
+            else 
+                Date.now()
 
-        if data.pushDateUseLocalTime is true
-            pushDate.setTimezone(timezone,true)
+        if pushDateUseLocalTime is true
+            try
+                pushDate.setTimezone(timezone,true)
+            catch e
         delayTime = pushDate - Date.now()
         eventId = event.name
         jobData = {
