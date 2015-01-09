@@ -265,28 +265,29 @@ class Subscriber
                     cb(null) if cb # null if subscriber doesn't exist
 
     removeSubscription: (event, cb) ->
-        @redis.multi()
-            # check subscriber existance
-            .zscore("subscribers", @id)
-            # remove event from subscriber's subscriptions list
-            .zrem("#{@key}:evts", event.name)
-            # remove the subscriber from the event's subscribers list
-            .zrem("#{event.key}:subs", @id)
-            .zrem("#{event.key}:#{info.timezone}:subs", @id)
-            # check if the subscriber list still exist after previous zrem
-            .zcard("#{event.key}:subs")
-            .exec (err, results) =>
-                if results[4] is 0
-                    # The event subscriber list is now empty, clean it
-                    event.delete() # TOFIX possible race condition
+        @get (info) =>
+            @redis.multi()
+                # check subscriber existance
+                .zscore("subscribers", @id)
+                # remove event from subscriber's subscriptions list
+                .zrem("#{@key}:evts", event.name)
+                # remove the subscriber from the event's subscribers list
+                .zrem("#{event.key}:subs", @id)
+                .zrem("#{event.key}:#{info.timezone}:subs", @id)
+                # check if the subscriber list still exist after previous zrem
+                .zcard("#{event.key}:subs")
+                .exec (err, results) =>
+                    if results[4] is 0
+                        # The event subscriber list is now empty, clean it
+                        event.delete() # TOFIX possible race condition
 
-                if results[0]? # subscriber exists?
-                    wasRemoved = results[1] is 1 # true if removed, false if wasn't subscribed
-                    if wasRemoved
-                        logger.verbose "Subscriber #{@id} unregistered from event #{event.name}"
-                    cb(wasRemoved) if cb
-                else
-                    cb(null) if cb # null if subscriber doesn't exist
+                    if results[0]? # subscriber exists?
+                        wasRemoved = results[1] is 1 # true if removed, false if wasn't subscribed
+                        if wasRemoved
+                            logger.verbose "Subscriber #{@id} unregistered from event #{event.name}"
+                        cb(wasRemoved) if cb
+                    else
+                        cb(null) if cb # null if subscriber doesn't exist
 
 
 exports.Subscriber = Subscriber
