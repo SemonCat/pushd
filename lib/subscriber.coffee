@@ -48,14 +48,14 @@ class Subscriber
                 crypto.randomBytes 8, (ex, buf) =>
                     # generate a base64url random uniq id
                     id = buf.toString('base64').replace(/\=+$/, '').replace(/\//g, '_').replace(/\+/g, '-')
-                    redis.watch "subscriber:#{id}", =>
-                        redis.exists "subscriber:#{id}", (err, exists) =>
-                            if exists
-                                # already exists, rollback and retry with another id
-                                redis.discard =>
-                                    return Subscriber::create(redis, fields, cb, tentatives + 1)
-                            else
-                                fields.created = fields.updated = Math.round(new Date().getTime() / 1000)
+                    redis.exists "subscriber:#{id}", (err, exists) =>
+                        if exists
+                            # already exists, rollback and retry with another id
+                            redis.discard =>
+                                return Subscriber::create(redis, fields, cb, tentatives + 1)
+                        else
+                            fields.created = fields.updated = Math.round(new Date().getTime() / 1000)
+                            redis.watch "subscriber:#{id}", =>
                                 redis.multi()
                                     # register subscriber token to db id
                                     .hsetnx("tokenmap", "#{fields.proto}:#{fields.token}", id)
