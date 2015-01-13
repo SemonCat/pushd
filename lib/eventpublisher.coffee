@@ -4,6 +4,7 @@ Payload = require('./payload').Payload
 logger = require 'winston'
 kue = require 'kue'
 Time = require('time')(Date);
+settings = require '../settings'
 
 class EventPublisher extends events.EventEmitter
     constructor: (@redis,@pushServices) ->
@@ -16,6 +17,11 @@ class EventPublisher extends events.EventEmitter
                 db: 3
             }
         }
+
+        if settings.server.redis_port? or settings.server.redis_host?
+            option.redis.host = settings.server.redis_host
+            option.redis.port = settings.server.redis_port
+
         @jobs = kue.createQueue option
         kue.app.listen 3000
         @jobs.process 'publish',(job, done) =>
