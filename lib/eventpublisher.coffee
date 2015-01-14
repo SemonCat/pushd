@@ -108,7 +108,13 @@ class EventPublisher extends events.EventEmitter
                             protoCounts[info.proto] += 1
                         else
                             protoCounts[info.proto] = 1
-                @pushServices.push(subscriber, subOptions, payload, done)
+                    if not payload?.title?.default? and not payload?.msg?.default?
+                        localizedTitle = payload.localizedTitle(info.lang)
+                        localizedMessage = payload.localizedMessage(info.lang)
+                        if not localizedTitle? or not localizedMessage?
+                            logger.silly "localizedMessage return"
+                            return
+                    @pushServices.push(subscriber, subOptions, payload, done)
             
             finish = (totalSubscribers,timezone) =>
                 # finished
