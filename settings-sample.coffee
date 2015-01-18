@@ -1,4 +1,8 @@
 exports.server =
+    db_backend: 'redis'
+    # or 
+    # db_backend: 'mongo'
+    # mongo_host: 'mongodb://localhost/test'
     redis_port: 6379
     redis_host: 'localhost'
     # redis_socket: '/var/run/redis/redis.sock'
