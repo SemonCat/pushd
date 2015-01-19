@@ -31,6 +31,12 @@ if settings.logging?
 if settings.server?.redis_auth?
     redis.auth(settings.server.redis_auth)
 
+if settings.server?.db_backend is 'mongo'
+    logger.info "backend:mongo"
+    Subscriber = require('./lib/mongo/subscriber').Subscriber
+    Event = require('./lib/mongo/event').Event
+
+
 createSubscriber = (fields, cb) ->
     logger.verbose "creating subscriber proto = #{fields.proto}, token = #{fields.token}"
     throw new Error("Invalid value for `proto'") unless service = pushServices.getService(fields.proto)
