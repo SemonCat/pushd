@@ -35,7 +35,7 @@ if settings.server?.db_backend is 'mongo'
     logger.info "backend:mongo"
     Subscriber = require('./lib/mongo/subscriber').Subscriber
     Event = require('./lib/mongo/event').Event
-
+    EventPublisher = require('./lib/mongo/eventpublisher').EventPublisher
 
 createSubscriber = (fields, cb) ->
     logger.verbose "creating subscriber proto = #{fields.proto}, token = #{fields.token}"
