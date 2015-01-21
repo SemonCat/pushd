@@ -1,20 +1,27 @@
 mongooseSubscriber = require("./schema").Subscriber
+mongoose = require 'mongoose'
 Event = require('./event').Event
 async = require 'async'
 
 class Subscriber
 
+    checkForHexRegExp = new RegExp("^[0-9a-fA-F]{24}$");
+
     constructor: (@redis, @id) ->
     	
-
     getDoc: (cb) ->
         if @subscriberDoc?
             cb(@subscriberDoc)
         else
-            mongooseSubscriber.findById @id, (err,@subscriberDoc) =>
-                throw err if err?
-                throw new Error("Subscriber not found") if not @subscriberDoc?
-                cb(subscriberDoc)
+            if checkForHexRegExp.test @id
+                mongooseSubscriber.findById @id, (err,@subscriberDoc) =>
+                    throw err if err?
+                    if @subscriberDoc?
+                        cb(subscriberDoc)
+                    else
+                        cb(null)
+            else
+                cb(null)
         
     getInstanceFromToken: (redis, proto, token, cb) ->
     	return until cb
@@ -51,68 +58,88 @@ class Subscriber
     					cb(subscriber, created=true)
 
     delete: (cb) ->
-        @getDoc () =>
-        	@subscriberDoc.remove (err)->
-        		throw err if err?
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+               subscriberDoc.remove (err)->
+            	  throw err if err?
+                  cb(true)
+            else
+                cb(false)
         
     get: (cb) ->
-        @getDoc () =>
-            subscriberJson = @subscriberDoc.toJSON()
-            delete subscriberJson.events
-            cb(subscriberJson)
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+                subscriberJson = subscriberDoc.toJSON()
+                delete subscriberJson.events
+                cb(subscriberJson)
+            else
+                cb(null)
 
     set: (fieldsAndValues, cb) ->
-        @getDoc () =>
-            timezone = fieldsAndValues.timezone
-            lang = fieldsAndValues.lang
-            screenSize = fieldsAndValues.screenSize
-            model = fieldsAndValues.fieldsAndValues
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+                timezone = fieldsAndValues.timezone
+                lang = fieldsAndValues.lang
+                screenSize = fieldsAndValues.screenSize
+                model = fieldsAndValues.fieldsAndValues
 
-            @subscriberDoc.timezone = timezone if timezone?
-            @subscriberDoc.lang = lang if lang?
-            @subscriberDoc.screenSize = screenSize if screenSize?
-            @subscriberDoc.model = model if model?
-            @subscriberDoc.updateAt = Date.now()
-            @subscriberDoc.save (err) ->
-                throw err if err?
-                cb(true) if cb
+                subscriberDoc.timezone = timezone if timezone?
+                subscriberDoc.lang = lang if lang?
+                subscriberDoc.screenSize = screenSize if screenSize?
+                subscriberDoc.model = model if model?
+                subscriberDoc.updateAt = Date.now()
+                subscriberDoc.save (err) ->
+                    throw err if err?
+                    cb(true) if cb
+            else
+                cb(false)
 
     getSubscriptions: (cb) ->
         return unless cb
-        @getDoc () =>
-            mongooseSubscriber.populate @subscriberDoc , { path: 'events', model: 'Event', select: 'name'} ,(err,subscriber) ->
-                throw err if err?
-                events = subscriber.events
-                if events?
-                    subscriptions = []
-                    for event in events
-                        subscriptions.push
-                            event: event
-                            options: 0
-                    cb(subscriptions)
-                else
-                    cb(null)
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+                mongooseSubscriber.populate subscriberDoc , { path: 'events', model: 'Event', select: 'name'} ,(err,subscriber) ->
+                    throw err if err?
+                    events = subscriber.events
+                    if events?
+                        subscriptions = []
+                        for event in events
+                            subscriptions.push
+                                event: event
+                                options: 0
+                        cb(subscriptions)
+                    else
+                        cb(null)
+            else
+                cb(null)
 
     addSubscription: (event, options, cb) ->
-        @getDoc () =>
-            Event::getOrSaveDocByName event.name,(eventDoc) =>
-                @subscriberDoc.events.push eventDoc
-                @subscriberDoc.save (err,result) =>
-                	throw err if err?
-                	cb(true)
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+                Event::getOrSaveDocByName event.name,(eventDoc) =>
+                    subscriberDoc.events.addToSet eventDoc
+                    subscriberDoc.save (err,result) =>
+                    	throw err if err?
+                    	cb(true)
+            else
+                cb(null)
 
     removeSubscription: (event, cb) ->
-        @getDoc () =>
-            @subscriberDoc.events.pull event
-            @subscriberDoc.save (err,result) ->
-            	throw err if err?
-            	cb(true)
+        @getDoc (subscriberDoc) =>
+            if subscriberDoc?
+                subscriberDoc.events.pull event
+                subscriberDoc.save (err,result) ->
+                	throw err if err?
+                	cb(true)
+            else
+                cb(null)
 
-    paginate: (eventDoc, pageNumber, resultsPerPage, callback, options) ->
-        mongooseSubscriber.paginate {"events": eventDoc}, pageNumber, resultsPerPage, callback, options
+    paginate: (eventDoc,query, pageNumber, resultsPerPage, callback, options) ->
+        query.events = eventDoc
+        mongooseSubscriber.paginate query, pageNumber, resultsPerPage, callback, options
 
-    getSubscriberCountByEventName: (eventname,cb) ->
-        Event::getDoc eventname,(eventDoc) =>
+    getSubscriberCountByEventName: (event,cb) ->
+        event.getDoc (eventDoc) =>
             query = mongooseSubscriber.find {
                 "events": eventDoc
             }
@@ -120,9 +147,8 @@ class Subscriber
                 cb(count?=0)
 
     # Performs an action on each subscriber subsribed to this event
-    forEachSubscribers: (eventname,action, finished, timezone) ->
-        Event::getDoc eventname,(eventDoc) =>
-            if eventDoc?
+    forEachSubscribers: (event,filter,action, finished, timezone) ->
+        event.getDoc (eventDoc) =>
                 if @name is 'broadcast'
                     # if event is broadcast, do not treat score as subscription option, ignore it
                     performAction = (subscriberId, subOptions) =>
@@ -135,14 +161,17 @@ class Subscriber
                             action(new Subscriber(@redis, subscriberId), options, done)
 
                 page = 1
-                perPage = 100
-                totalPage = 1
+                perPage = 1000
+                totalPage = 2
                 totalCount = 0
 
+                if filter.lang?
+                    filter.lang = new RegExp(filter.lang, 'i')
+                filter.timezone = timezone
                 async.whilst =>
                     # test if we got less items than requested during last request
                     # if so, we reached to end of the list
-                    return page <= totalPage
+                    return page < totalPage
                 , (done) =>
                     # treat subscribers by packs of 100 with async to prevent from blocking the event loop
                     # for too long on large subscribers lists
@@ -156,7 +185,7 @@ class Subscriber
                             page++
                             done()
 
-                    @paginate eventDoc,page,perPage,result
+                    @paginate eventDoc,filter,page,perPage,result,{sortBy :{createAt: 1}}
                 , =>
                     # all done
                     finished(totalCount,timezone) if finished

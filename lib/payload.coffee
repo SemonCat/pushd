@@ -12,6 +12,8 @@ class Payload
         @msg = {}
         @data = {}
         @var = {}
+        @filter = {}
+        @intent = {}
         @incrementBadge = yes
         @category = {}
         @contentAvailable = false
@@ -33,8 +35,8 @@ class Payload
                 when 'incrementBadge' then @incrementBadge = value != 'false'
                 when 'category' then @category = value
                 when 'contentAvailable' then @contentAvailable = value != 'false'
-                when 'pushDate' 
-                    @pushDate = new Date(value) 
+                when 'pushDate'
+                    @pushDate = new Date(value)
                     @pushDateUseLocalTime = true
                 when 'pushDateUseLocalTime' then @pushDateUseLocalTime = value
                 else
@@ -43,6 +45,9 @@ class Payload
                     else
                         throw new Error("Invalid field: #{key}")
 
+        if @intent?
+            @data.intent = @intent
+            delete @intent
         # Detect empty payload
         sum = 0
         sum += (key for own key of @[type]).length for type in ['title', 'msg', 'data']

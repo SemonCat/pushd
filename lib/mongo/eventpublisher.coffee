@@ -31,8 +31,17 @@ class EventPublisher extends events.EventEmitter
 
     publishByTimezone: (event, data, cb) ->
         Subscriber::getAllTimezones (err,timezones) =>
-            if exists?
-                for timezone in exists
+            if timezones?
+                # check payload format
+                try
+                    payload = new Payload(data)
+                    payload.compile()
+                    cb(true)
+                catch e
+                    logger.error 'Invalid payload ' + e
+                    cb(-1) if cb
+                    return
+                for timezone in timezones
                     @kuePublish event, data, timezone
             else
                 @publishImmediately(event,data,cb)
@@ -109,12 +118,14 @@ class EventPublisher extends events.EventEmitter
                             protoCounts[info.proto] += 1
                         else
                             protoCounts[info.proto] = 1
+                    ###
                     if not payload?.title?.default? and not payload?.msg?.default?
                         localizedTitle = payload.localizedTitle(info.lang)
                         localizedMessage = payload.localizedMessage(info.lang)
                         if not localizedTitle? or not localizedMessage?
                             logger.silly "localizedMessage return"
                             return
+                    ###
                     @pushServices.push(subscriber, subOptions, payload, done)
             
             finish = (totalSubscribers,timezone) =>
@@ -123,7 +134,7 @@ class EventPublisher extends events.EventEmitter
                 for proto, count of protoCounts
                     logger.verbose "#{count} #{proto} subscribers"
 
-                Subscriber::getSubscriberCountByEventName event.name, (count) ->
+                Subscriber::getSubscriberCountByEventName event, (count) ->
                     if count > 0
                         # update some event' stats
                         event.log =>
@@ -132,8 +143,6 @@ class EventPublisher extends events.EventEmitter
                         # if there is no subscriber, cleanup the event
                             event.delete =>
                                 cb(0) if cb
-                    
-
-            Subscriber::forEachSubscribers event.name,action, finish, timezone
+            Subscriber::forEachSubscribers event,payload.filter,action, finish, timezone
 
 exports.EventPublisher = EventPublisher

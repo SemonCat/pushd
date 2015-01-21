@@ -10,7 +10,7 @@ class Event
     	
 
 	getOrSaveDocByName: (eventName,cb) ->
-		mongooseEvent.findOne {name: eventName}, (err,eventDoc) =>
+		mongooseEvent.findOne {name: eventName},'name', (err,eventDoc) =>
 			throw err if err?
 			if eventDoc?
 				cb(eventDoc)
@@ -21,10 +21,13 @@ class Event
 					throw err if err?
 					cb(eventDoc)
 
-	getDoc: (eventName,cb) ->
-		mongooseEvent.findOne {name: eventName}, (err,eventDoc) =>
-			throw err if err?
-			cb(eventDoc)
+	getDoc: (cb) ->
+		if @eventDoc?
+			cb(@eventDoc)
+		else
+			mongooseEvent.findOne {name: @name},'name', (err,@eventDoc) =>
+				throw err if err?
+				cb(@eventDoc)
 
 	listEvents: (redis,cb) ->
 		eventsArray = []
