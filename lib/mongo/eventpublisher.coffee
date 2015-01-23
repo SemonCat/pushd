@@ -19,7 +19,7 @@ class EventPublisher extends events.EventEmitter
             }
         }
         @jobs = kue.createQueue option
-        kue.app.listen 3000
+        ##kue.app.listen 3000
         @jobs.process 'publish',(job, done) =>
             jobData = job.data
             event = new Event(redis,jobData.eventId)
