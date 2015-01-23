@@ -4,7 +4,7 @@ logger = require 'winston'
 
 filterFields = (params) ->
     fields = {}
-    fields[key] = val for own key, val of params when key in ['proto', 'token', 'lang', 'timezone', 'badge', 'version', 'category', 'contentAvailable']
+    fields[key] = val for own key, val of params when key in ['proto', 'token', 'lang', 'timezone','model','screenSize','screenInches', 'badge', 'version', 'category', 'contentAvailable']
     return fields
 
 exports.setupRestApi = (app, createSubscriber, getEventFromId, authorize, testSubscriber, listEvents, eventPublisher) ->
@@ -166,8 +166,9 @@ exports.setupRestApi = (app, createSubscriber, getEventFromId, authorize, testSu
     app.post '/event/:event_id', authorize('publish'), (req, res) ->
         
         eventPublisher.publish req.event, req.body , (result) =>
-            if result is true
-                res.sendStatus 204
+            if result isnt -1
+                res.status 200
+                    .json result
             else
                 res.sendStatus 400
 

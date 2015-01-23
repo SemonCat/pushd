@@ -1,17 +1,20 @@
 mongoose = require 'mongoose'
 Schema = mongoose.Schema
-relationship = require "mongoose-relationship"
 mongoosePaginate = require 'mongoose-paginate'
 settings = require '../../settings'
 
 ##connect to mongodb
 mongoose.connect settings.server.mongo_host
 
+messageSchema = Schema {
+	srcData: String
+	createAt: { type: Date, default: Date.now },
+}
+
 eventSchema = Schema {
 	name    	: { type: String, unique: true ,required: true},
 	createAt: { type: Date, default: Date.now },
-	updateAt: { type: Date, default: Date.now },
-	subscribers	: [{ type:Schema.ObjectId, ref: 'Subscriber',index: true }]
+	updateAt: { type: Date, default: Date.now }
 }
 
 subscriberSchema = Schema {
@@ -20,10 +23,11 @@ subscriberSchema = Schema {
 	lang		: String,
 	timezone	: String,
 	screenSize	: String,
+	screenInches: Number,
 	model 		: String,
 	createAt: { type: Date, default: Date.now },
 	updateAt: { type: Date, default: Date.now },
-	events	: [{ type: Schema.Types.ObjectId, ref: 'Event',childPath:"subscribers",index: true}]
+	events	: [{ type: Schema.Types.ObjectId, ref: 'Event',index: true}]
 }
 
 toJSON = {
@@ -36,12 +40,14 @@ toJSON = {
 
 subscriberSchema.options.toJSON = toJSON
 eventSchema.options.toJSON = toJSON
+messageSchema.options.toJSON = toJSON
 
 subscriberSchema.plugin mongoosePaginate
-subscriberSchema.plugin relationship, { relationshipPathName:'events' }
 
 Event = mongoose.model 'Event', eventSchema
 Subscriber = mongoose.model 'Subscriber', subscriberSchema
+Message = mongoose.model 'Message', messageSchema
 
 exports.Event = Event
 exports.Subscriber = Subscriber
+exports.Message = Message
