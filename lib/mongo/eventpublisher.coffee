@@ -2,6 +2,7 @@ events = require 'events'
 Event = require('./event').Event
 Subscriber = require("./subscriber").Subscriber
 Payload = require('../payload').Payload
+Message = require("./schema").Message
 logger = require 'winston'
 kue = require 'kue'
 Time = require('time')(Date);
@@ -36,7 +37,11 @@ class EventPublisher extends events.EventEmitter
                 try
                     payload = new Payload(data)
                     payload.compile()
-                    cb(true)
+                    message = new Message({})
+                    data.message_id = message.id
+                    message.srcData = JSON.stringify(payload.data)
+                    message.save (err,message) ->
+                        cb(message.toJSON())
                 catch e
                     logger.error 'Invalid payload ' + e
                     cb(-1) if cb

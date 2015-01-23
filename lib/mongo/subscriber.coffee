@@ -81,11 +81,13 @@ class Subscriber
                 timezone = fieldsAndValues.timezone
                 lang = fieldsAndValues.lang
                 screenSize = fieldsAndValues.screenSize
-                model = fieldsAndValues.fieldsAndValues
+                screenInches = fieldsAndValues.screenInches
+                model = fieldsAndValues.model
 
                 subscriberDoc.timezone = timezone if timezone?
                 subscriberDoc.lang = lang if lang?
                 subscriberDoc.screenSize = screenSize if screenSize?
+                subscriberDoc.screenInches = screenInches if screenInches?
                 subscriberDoc.model = model if model?
                 subscriberDoc.updateAt = Date.now()
                 subscriberDoc.save (err) ->

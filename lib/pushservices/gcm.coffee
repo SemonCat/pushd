@@ -25,6 +25,7 @@ class PushServiceGCM
             else
                 note = new gcm.Message()
                 note.collapseKey = payload.event?.name
+                note.addData "message_id",payload.id
                 if subOptions?.ignore_message isnt true
                     if title = payload.localizedTitle(info.lang)
                         note.addData 'title', title

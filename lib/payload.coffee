@@ -3,6 +3,8 @@ serial = 0
 class Payload
     locale_format: /^[a-z]{2}_[A-Z]{2}$/
 
+
+
     constructor: (data) ->
         throw new Error('Invalid payload') unless typeof data is 'object'
 
@@ -14,6 +16,14 @@ class Payload
         @var = {}
         @filter = {}
         @intent = {}
+        @intent.action = ""
+        @intent.data = ""
+        @intent.category = []
+        @intent.type = ""
+        @intent.package_name = ""
+        @intent.class_name = ""
+        @intent.flags = 0
+        @intent.extras = {}
         @incrementBadge = yes
         @category = {}
         @contentAvailable = false
@@ -25,10 +35,12 @@ class Payload
         for own key, value of data
             if typeof key isnt 'string' or key.length == 0
                 throw new Error("Invalid field (empty)")
+            ###
             if typeof value isnt 'string'
                 throw new Error("Invalid value for `#{key}'")
-
+            ###
             switch key
+                when 'message_id' then @id = value
                 when 'title' then @title.default = value
                 when 'msg' then @msg.default = value
                 when 'sound' then @sound = value
@@ -39,14 +51,17 @@ class Payload
                     @pushDate = new Date(value)
                     @pushDateUseLocalTime = true
                 when 'pushDateUseLocalTime' then @pushDateUseLocalTime = value
+                when 'intent.category' then @intent.category = value
                 else
-                    if ([prefix, subkey] = key.split('.', 2)).length is 2
+                    if ([prefix, subkey, thirdkey] = key.split('.', 3)).length is 3
+                        @[prefix][subkey][thirdkey] = value
+                    else if ([prefix, subkey] = key.split('.', 2)).length is 2
                         @[prefix][subkey] = value
                     else
                         throw new Error("Invalid field: #{key}")
 
         if @intent?
-            @data.intent = @intent
+            @data.action_intent_json = JSON.stringify(@intent)
             delete @intent
         # Detect empty payload
         sum = 0
