@@ -61,8 +61,8 @@ class Subscriber
         @getDoc (subscriberDoc) =>
             if subscriberDoc?
                subscriberDoc.remove (err)->
-            	  throw err if err?
-                  cb(true)
+                    throw err if err?
+                    cb(true)
             else
                 cb(false)
         
@@ -129,10 +129,12 @@ class Subscriber
     removeSubscription: (event, cb) ->
         @getDoc (subscriberDoc) =>
             if subscriberDoc?
-                subscriberDoc.events.pull event
-                subscriberDoc.save (err,result) ->
-                	throw err if err?
-                	cb(true)
+                Event::getOrSaveDocByName event.name,(eventDoc) =>
+                    if eventDoc?
+                        subscriberDoc.events.pull eventDoc
+                        subscriberDoc.save (err,result) ->
+                        	throw err if err?
+                        	cb(true)
             else
                 cb(null)
 
