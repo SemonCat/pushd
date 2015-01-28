@@ -62,11 +62,11 @@ class Subscriber
             if subscriberDoc?
                subscriberDoc.remove (err)->
                 if err?
-                    cb(false)
+                    cb(false) if cb
                     console.log err
-                cb(true)
+                cb(true) if cb
             else
-                cb(false)
+                cb(false) if cb
         
     get: (cb) ->
         @getDoc (subscriberDoc) =>
